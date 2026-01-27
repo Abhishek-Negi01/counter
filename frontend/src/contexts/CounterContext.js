@@ -12,5 +12,3 @@ export const CounterContext = createContext({
 export const useCounter = () => {
   return useContext(CounterContext);
 };
-
-export const CounterProvider = CounterContext.Provider;

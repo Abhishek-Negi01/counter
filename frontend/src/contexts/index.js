@@ -1,6 +1,2 @@
-export {
-  CounterContext,
-  useCounter,
-  CounterProvider,
-} from "./CounterContext.js";
-export { AuthContext, useAuth, AuthProvider } from "./AuthContext.js";
+export { AuthContext, useAuth } from "./AuthContext.js";
+export { CounterContext, useCounter } from "./CounterContext.js";
