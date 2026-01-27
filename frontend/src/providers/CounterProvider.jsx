@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { CounterProvider as CounterContextProvider } from "../contexts";
+import { CounterContext } from "../contexts/index.js";
 import { counterService } from "../services/counter.service.js";
 import { useAuth } from "../contexts";
 
@@ -104,6 +104,6 @@ export const CounterProvider = ({ children }) => {
   };
 
   return (
-    <CounterContextProvider value={value}>{children}</CounterContextProvider>
+    <CounterContext.Provider value={value}>{children}</CounterContext.Provider>
   );
 };

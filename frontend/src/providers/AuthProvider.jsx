@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { AuthProvider as AuthContextProvider } from "../contexts";
+import { AuthContext } from "../contexts/index.js";
 import { authService } from "../services";
 
 export const AuthProvider = ({ children }) => {
@@ -94,5 +94,5 @@ export const AuthProvider = ({ children }) => {
     getCurrentUser,
   };
 
-  return <AuthContextProvider value={value}>{children}</AuthContextProvider>;
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
