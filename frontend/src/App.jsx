@@ -1,11 +1,13 @@
 import "./App.css";
+import { useAuth } from "./contexts/index.js";
+import { AuthPage, DashboardPage, LoadingPage } from "./pages/index.js";
 
 function App() {
-  return (
-    <div>
-      <h1 className="text-4xl text-center bg-blue-600">tailwind integration</h1>
-    </div>
-  );
+  const { isAuthenticated, loading } = useAuth();
+  if (loading) {
+    return <LoadingPage />;
+  }
+  return isAuthenticated ? <DashboardPage /> : <AuthPage />;
 }
 
 export default App;
