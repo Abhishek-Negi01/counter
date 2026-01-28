@@ -12,17 +12,13 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const initializeAuth = async () => {
-    const token = localStorage.getItem("accessToken");
-    if (token) {
-      try {
-        const response = await authService.getCurrentUser();
-        setUser(response.data);
-        setIsAuthenticated(true);
-      } catch (error) {
-        console.log(error);
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
-      }
+    try {
+      const response = await authService.getCurrentUser();
+      setUser(response.data);
+      setIsAuthenticated(true);
+    } catch (error) {
+      setUser(null);
+      setIsAuthenticated(false);
     }
     setLoading(false);
   };
@@ -30,10 +26,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     try {
       const response = await authService.login(credentials);
-      const { user, accessToken, refreshToken } = response.data;
-      localStorage.setItem("accessToken", accessToken);
-      localStorage.setItem("refreshToken", refreshToken);
-
+      const { user } = response.data;
       setUser(user);
       setIsAuthenticated(true);
 
@@ -67,8 +60,6 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.log("Logout error : ", error);
     } finally {
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
       setUser(null);
       setIsAuthenticated(false);
     }
@@ -84,6 +75,32 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const verifyEmail = async (token) => {
+    try {
+      const response = await authService.verifyEmail(token);
+      return { success: true, message: response.data.message };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.message || "Email verification failed",
+      };
+    }
+  };
+
+  const resendVerification = async (email) => {
+    try {
+      const response = await authService.resendVerification(email);
+      return { success: true, message: response.data.message };
+    } catch (error) {
+      return {
+        success: false,
+        error:
+          error.response?.data?.message ||
+          "Failed to resend verification email",
+      };
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -92,6 +109,8 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     getCurrentUser,
+    verifyEmail,
+    resendVerification,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
