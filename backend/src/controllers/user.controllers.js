@@ -4,6 +4,8 @@ import { User } from "../models/user.models.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
+import { emailService } from "../utils/emailService.js";
+import crypto from "crypto";
 
 const generateAccessAndRefreshToken = async (userId) => {
   try {
@@ -54,6 +56,19 @@ const registerUser = asyncHandler(async (req, res) => {
 
     if (!createdUser) {
       throw new ApiError("Something went wrong while registering user.");
+    }
+
+    const verificationToken = user.generateEmailVerificationToken();
+    await user.save({ validateBeforeSave: false });
+
+    try {
+      await emailService.sendVerificationEmail(
+        email,
+        username,
+        verificationToken
+      );
+    } catch (emailError) {
+      console.log("Email sending failed:", emailError);
     }
 
     return res
@@ -222,6 +237,71 @@ const getCurrentUser = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, req.user, "user fetched successfully"));
 });
 
+const verifyEmail = asyncHandler(async (req, res) => {
+  const { token } = req.query;
+
+  if (!token) {
+    throw new ApiError(400, "Email verification token is required");
+  }
+
+  const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+  const user = await User.findOne({
+    emailVerificationToken: hashedToken,
+    emailVerificationExpiry: { $gt: Date.now() },
+  });
+
+  if (!user) {
+    throw new ApiError(400, "Invalid or expired verification token");
+  }
+
+  user.isEmailVerified = true;
+  user.accountStatus = "active";
+  user.emailVerificationToken = undefined;
+  user.emailVerificationExpiry = undefined;
+
+  await user.save({ validateBeforeSave: false });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Email verified successfully"));
+});
+
+const resendVerificationEmail = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    throw new ApiError(400, "Email is required");
+  }
+
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  if (user.isEmailVerified) {
+    throw new ApiError(400, "Email is already verified");
+  }
+
+  const verificationToken = user.generateEmailVerificationToken();
+  await user.save({ validateBeforeSave: false });
+
+  try {
+    await emailService.sendVerificationEmail(
+      email,
+      user.username,
+      verificationToken
+    );
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, {}, "Verification email sent successfully"));
+  } catch (error) {
+    throw new ApiError(500, "Failed to send verification email");
+  }
+});
+
 export {
   registerUser,
   loginUser,
@@ -229,4 +309,6 @@ export {
   refreshAccessToken,
   changeCurrentPassword,
   getCurrentUser,
+  verifyEmail,
+  resendVerificationEmail,
 };

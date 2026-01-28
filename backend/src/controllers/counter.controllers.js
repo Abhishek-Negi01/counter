@@ -10,23 +10,20 @@ const incrementCounter = asyncHandler(async (req, res) => {
     throw new ApiError(400, "word is required");
   }
 
-  const counter = await Counter.findOneAndUpdate(
-    {
-      word: word.toLowerCase(),
-      userId: req.user._id,
-    },
-    {
-      $inc: { count: 1 },
-    },
-    {
-      new: true,
-      upsert: true,
-    }
-  );
+  let counter = await Counter.findOne({
+    word: word.toLowerCase(),
+    userId: req.user._id,
+  });
 
   if (!counter) {
-    throw new ApiError(500, "error while updating or creating counter");
+    // Create new counter
+    counter = await Counter.create({
+      word: word.toLowerCase(),
+      userId: req.user._id,
+    });
   }
+
+  await counter.incrementCounter();
 
   return res
     .status(200)
@@ -36,7 +33,7 @@ const incrementCounter = asyncHandler(async (req, res) => {
 const getAllCounters = asyncHandler(async (req, res) => {
   const counters = await Counter.find({
     userId: req.user._id,
-  });
+  }).sort({ lastCountDate: -1 });
 
   if (!counters) {
     throw new ApiError(500, "error while fetching counters");
@@ -61,8 +58,8 @@ const getCounter = asyncHandler(async (req, res) => {
       .json(
         new ApiResponse(
           200,
-          { word: word.toLowerCase(), count: 0 },
-          "counter not found"
+          { word: word.toLowerCase(), count: 0, todayCount: 0 },
+          "Counter not found"
         )
       );
   }
@@ -75,22 +72,69 @@ const getCounter = asyncHandler(async (req, res) => {
 const resetCounter = asyncHandler(async (req, res) => {
   const { word } = req.params;
 
-  const counter = await Counter.findOneAndUpdate(
-    {
-      word: word.toLowerCase(),
-      userId: req.user._id,
-    },
-    { count: 0 },
-    { new: true }
-  );
+  const counter = await Counter.findOne({
+    word: word.toLowerCase(),
+    userId: req.user._id,
+  });
 
   if (!counter) {
     throw new ApiError(404, "counter not found");
   }
+
+  await counter.resetCounter();
 
   return res
     .status(200)
     .json(new ApiResponse(200, counter, "counter reset successfully"));
 });
 
-export { incrementCounter, getAllCounters, getCounter, resetCounter };
+const getTodayStats = asyncHandler(async (req, res) => {
+  const stats = await Counter.getTodayStats(req.user._id);
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, stats[0] || {}, "Today's stats fetched successfully")
+    );
+});
+
+const getWeeklyTrend = asyncHandler(async (req, res) => {
+  const trend = await Counter.getWeeklyTrend(req.user._id);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, trend, "Weekly trend fetched successfully"));
+});
+
+const getMonthlyTrend = asyncHandler(async (req, res) => {
+  const trend = await Counter.getMonthlyTrend(req.user._id);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, trend, "Monthly trend fetched successfully"));
+});
+
+const getAllTimeStats = asyncHandler(async (req, res) => {
+  const stats = await Counter.getAllTimeStats(req.user._id);
+
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        stats[0] || {},
+        "All-time stats fetched successfully"
+      )
+    );
+});
+
+export {
+  incrementCounter,
+  getAllCounters,
+  getCounter,
+  resetCounter,
+  getTodayStats,
+  getWeeklyTrend,
+  getMonthlyTrend,
+  getAllTimeStats,
+};
