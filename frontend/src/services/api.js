@@ -6,19 +6,30 @@ const API_BASE_URL = import.meta.env.DEV
 
 const api = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// Add token to requests
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("accessToken");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      try {
+        await api.post("/users/refresh-token");
+        return api(originalRequest);
+      } catch (refreshError) {
+        window.location.href = "/";
+        return Promise.reject(refreshError);
+      }
+    }
   }
-  return config;
-});
+);
 
 // Auth API calls
 export const authAPI = {
@@ -28,6 +39,9 @@ export const authAPI = {
   getCurrentUser: () => api.get("/users/current-user"),
   refreshToken: (refreshToken) =>
     api.post("/users/refresh-token", { refreshToken }),
+  verifyEmail: (token) => api.get(`/users/verify-email?token=${token}`),
+  resendVerification: (email) =>
+    api.post("/users/resend-verification", { email }),
 };
 
 // Counter API calls
