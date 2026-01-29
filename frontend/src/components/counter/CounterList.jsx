@@ -2,6 +2,7 @@ import React from "react";
 import { useCounter } from "../../contexts/index.js";
 import AddWordForm from "./AddWordForm.jsx";
 import CounterCard from "./CounterCard";
+import VoiceCounter from "./VoiceCounter.jsx";
 
 const CounterList = () => {
   const { counters, loading, incrementCounter, resetCounter } = useCounter();
@@ -22,18 +23,22 @@ const CounterList = () => {
           <p>Add a word above to start counting.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {counters.map((counter) => (
-            <CounterCard
-              key={counter._id}
-              word={counter.word}
-              count={counter.count}
-              onIncrement={incrementCounter}
-              onReset={resetCounter}
-              loading={loading}
-            />
-          ))}
-        </div>
+        <>
+          <VoiceCounter />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {counters.map((counter) => (
+              <CounterCard
+                key={counter._id}
+                word={counter.word}
+                count={counter.count}
+                onIncrement={incrementCounter}
+                onReset={resetCounter}
+                loading={loading}
+              />
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
